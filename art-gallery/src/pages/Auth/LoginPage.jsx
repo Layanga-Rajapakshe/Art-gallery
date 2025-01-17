@@ -79,7 +79,7 @@ const LoginPage = () => {
               className="w-full"
               disabled={loading}
             >
-              {loading ? 'Signing in...' : 'Sign In'}
+              {loading ? 'Logging in...' : 'Log In'}
             </Button>
           </form>
         </CardContent>
@@ -89,7 +89,7 @@ const LoginPage = () => {
           </div>
           <div className="text-sm text-center text-gray-500">
             Don't have an account?{' '}
-            <a href="#" className="text-primary hover:underline">
+            <a href="/signup" className="text-primary hover:underline">
               Sign up
             </a>
           </div>
