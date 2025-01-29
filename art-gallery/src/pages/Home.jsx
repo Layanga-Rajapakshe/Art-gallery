@@ -1,6 +1,7 @@
 import React from 'react'
 import GridMotion from '../components/GridMotion';
 import BlurText from "../components/BlurText";
+import ButtonHover13 from "../components/ui/buttonhover13";
 
 const Home = () => {
 
@@ -66,13 +67,15 @@ const items = [
   </div>
 
   {/* Header in the center, in the foreground */}
+  <div className='flex relative z-10'>
   <BlurText
   text="Welcome to Art Gallery!!!"
   delay={150}
   animateBy="words"
   direction="top"
-  className="relative z-10 text-6xl mb-8 text-white font-bold font-comfortaa "
+  className=" text-6xl mb-8 text-white font-bold font-comfortaa "
 />
+</div>
 </div>
 
   )
