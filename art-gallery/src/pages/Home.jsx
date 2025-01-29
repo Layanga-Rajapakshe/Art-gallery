@@ -71,7 +71,7 @@ const items = [
   delay={150}
   animateBy="words"
   direction="top"
-  className="relative z-10 text-5xl mb-8 text-white font-bold"
+  className="relative z-10 text-6xl mb-8 text-white font-bold font-comfortaa "
 />
 </div>
 
