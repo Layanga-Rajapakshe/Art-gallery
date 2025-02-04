@@ -1,9 +1,16 @@
 import React from 'react'
 import GridMotion from '../components/GridMotion';
 import BlurText from "../components/BlurText";
-import ButtonHover13 from "../components/ui/buttonhover13";
+import ExploreButton from "../components/ExploreButton";
+import { useNavigate } from 'react-router-dom';
 
 const Home = () => {
+
+  const navigate = useNavigate();
+
+  const handleClick = () => {
+    navigate('/browse');
+  }
 
 const items = [
   'Item 1',
@@ -66,16 +73,17 @@ const items = [
     </div>
   </div>
 
-  {/* Header in the center, in the foreground */}
-  <div className='flex relative z-10'>
+  <div className="flex flex-col items-center justify-center relative z-10">
   <BlurText
-  text="Welcome to Art Gallery!!!"
-  delay={150}
-  animateBy="words"
-  direction="top"
-  className=" text-6xl mb-8 text-white font-bold font-comfortaa "
-/>
+    text="Welcome to Art Gallery!!!"
+    delay={150}
+    animateBy="words"
+    direction="top"
+    className="text-6xl mb-8 text-white font-bold font-comfortaa"
+  />
+  <ExploreButton onClick={handleClick} />
 </div>
+
 </div>
 
   )
