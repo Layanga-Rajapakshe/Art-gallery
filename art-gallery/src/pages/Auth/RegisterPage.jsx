@@ -1,9 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { useState } from 'react';
+import axios from 'axios';
 
 const RegisterPage = () => {
   const [formData, setFormData] = useState({
@@ -12,12 +12,26 @@ const RegisterPage = () => {
     password: ''
   });
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    // Handle form submission logic here
-    console.log('Form submitted:', formData);
+    setError(null); // Reset error message on submit
+
+    try {
+      const response = await axios.post('http://your-backend-url/register/', formData);
+      // Handle successful response
+      console.log('Registration successful:', response.data);
+      // Redirect to login or dashboard page as needed
+      // Example: window.location.href = '/login';
+    } catch (err) {
+      // Handle error response
+      console.error('Error during registration:', err);
+      setError(err.response?.data?.error || 'Something went wrong');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleChange = (e) => {
@@ -77,26 +91,29 @@ const RegisterPage = () => {
                 required
               />
             </div>
+            {error && (
+              <div className="text-sm text-red-500">
+                {error}
+              </div>
+            )}
             <Button 
-                          type="submit" 
-                          className="w-full"
-                          disabled={loading}
-                        >
-                          {loading ? 'Signing up...' : 'Sign Up'}
-                        </Button>
-                        
+              type="submit" 
+              className="w-full"
+              disabled={loading}
+            >
+              {loading ? 'Signing up...' : 'Sign Up'}
+            </Button>
           </CardContent>
-          </form>
+        </form>
 
-          <CardFooter className="flex flex-col space-y-4">
-                  
-                    <div className="text-sm text-center text-gray-500">
-                      Already have an account?{' '}
-                      <a href="/login" className="text-primary hover:underline">
-                        Log in
-                      </a>
-                    </div>
-                  </CardFooter>
+        <CardFooter className="flex flex-col space-y-4">
+          <div className="text-sm text-center text-gray-500">
+            Already have an account?{' '}
+            <a href="/login" className="text-primary hover:underline">
+              Log in
+            </a>
+          </div>
+        </CardFooter>
       </Card>
     </div>
   );

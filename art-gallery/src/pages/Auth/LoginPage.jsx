@@ -17,18 +17,30 @@ const LoginPage = () => {
     setError('');
     setLoading(true);
 
-    // Basic validation
     if (!email || !password) {
       setError('Please fill in all fields');
       setLoading(false);
       return;
     }
 
-    // Simulate API call
     try {
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      // Here you would typically make your actual auth API call
-      console.log('Login attempted with:', { email, password });
+      const response = await fetch('http://localhost:8000/api/login/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+        credentials: 'include', // Ensures cookies are stored for session-based authentication
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        console.log('Login successful:', data);
+        // Store authentication state (e.g., in localStorage or Redux)
+      } else {
+        setError(data.error || 'Invalid email or password');
+      }
     } catch (err) {
       setError('An error occurred during login');
     } finally {
@@ -99,4 +111,4 @@ const LoginPage = () => {
   );
 };
 
-export default LoginPage;
+export default LoginPage; 
