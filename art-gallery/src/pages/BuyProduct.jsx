@@ -1,6 +1,12 @@
 import React from 'react';
+// import { addItem } from '../redux/api/cartSlice';
 
 const BuyProduct = () => {
+
+  // const handleClick = () => {
+  //   addItem
+  // }
+  
   return (
     <div className="min-h-screen bg-gray-50 py-10 px-6 mt-20">
       <div className="max-w-4xl mx-auto bg-white shadow-lg rounded-lg overflow-hidden">
