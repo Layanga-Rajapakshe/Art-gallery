@@ -1,10 +1,23 @@
 import React from 'react';
-// import { addItem } from '../redux/api/cartSlice';
+import { useDispatch } from 'react-redux';
+import { addToCart } from '../redux/features/cartSlice';
 
 const BuyProduct = () => {
-  // const handleClick = () => {
-  //   addItem
-  // }
+  const dispatch = useDispatch();
+
+  const handleAddToCart = () => {
+    const product = {
+      id: 1, // Replace with actual product ID
+      name: 'Serenity in Blue',
+      price: 2400,
+      artist: 'Elena Ramirez',
+      image: 'https://images.unsplash.com/photo-1485955900006-10f4d324d411?q=80&w=2672&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
+      quantity: 1,
+    };
+
+    dispatch(addToCart(product));
+    alert('Added to cart!');
+  };
   
   return (
     <div className="min-h-screen bg-gray-50 py-10 px-6 mt-20">
@@ -64,8 +77,9 @@ const BuyProduct = () => {
 
             {/* Action Buttons */}
             <div className="flex space-x-4">
-              <button className="bg-indigo-700 text-white px-6 py-3 rounded-md font-medium tracking-wider hover:bg-indigo-800 transition">
-                Purchase Artwork
+              <button className="bg-indigo-700 text-white px-6 py-3 rounded-md font-medium tracking-wider hover:bg-indigo-800 transition"
+              onClick={handleAddToCart}>
+                Add to Cart
               </button>
               <button className="border border-gray-300 px-6 py-3 rounded-md font-medium tracking-wider hover:bg-gray-100 transition">
                 Add to Collection

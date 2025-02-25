@@ -40,7 +40,7 @@ const Favorites = () => {
   };
 
   return (
-    <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 mt-16">
+    <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="flex items-center justify-between mb-8">
         <h1 className="text-2xl font-bold text-gray-900">My Favorites</h1>
         <span className="text-gray-500">{favorites.length} items</span>

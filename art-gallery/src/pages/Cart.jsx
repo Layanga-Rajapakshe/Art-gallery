@@ -1,57 +1,33 @@
-import React, { useState } from 'react';
-import { X, ShoppingBag, X as XIcon } from 'lucide-react';
+import React from "react";
+import { useSelector, useDispatch } from "react-redux";
+import { X, ShoppingBag } from "lucide-react";
+import { removeFromCart, updateQuantity } from "../redux/features/cartSlice";
 
-const Cart = () => {
-  const [cartItems, setCartItems] = useState([
-    {
-      id: 1,
-      name: 'Basic Tee 6-Pack',
-      size: 'XXS',
-      color: 'White',
-      price: 192.00,
-      quantity: 1,
-      image: '/api/placeholder/100/100'
-    },
-    {
-      id: 2,
-      name: 'Basic Tee 6-Pack',
-      size: 'XXS',
-      color: 'White',
-      price: 192.00,
-      quantity: 1,
-      image: '/api/placeholder/100/100'
-    }
-  ]);
-
-  const removeItem = (id) => {
-    setCartItems(cartItems.filter(item => item.id !== id));
-  };
-
-  const updateQuantity = (id, newQuantity) => {
-    if (newQuantity >= 1) {
-      setCartItems(cartItems.map(item => 
-        item.id === id ? {...item, quantity: newQuantity} : item
-      ));
-    }
-  };
-
-  const subtotal = cartItems.reduce((total, item) => total + (item.price * item.quantity), 0);
+const Cart = ({ closeCart }) => {
+  const dispatch = useDispatch();
+  const {
+    items: cartItems,
+    itemsPrice = 0,
+    shippingPrice = 0,
+    taxPrice = 0,
+    totalPrice = 0,
+    paymentMethod = "Not selected",
+  } = useSelector((state) => state.cart);
 
   return (
-    <div className="fixed inset-0 overflow-hidden bg-gray-500 bg-opacity-75 z-50">
+    <div className="fixed inset-0 overflow-hidden bg-gray-500 bg-opacity-75 z-50 ">
       <div className="absolute inset-y-0 right-0 max-w-md w-full bg-white shadow-xl flex flex-col">
-        {/* Cart header */}
+        {/* Cart Header */}
         <div className="flex items-center justify-between p-4 border-b">
-          <h2 className="text-lg font-medium text-gray-900">Shopping cart</h2>
-          <button className="p-2 rounded-md text-gray-400 hover:text-gray-500">
+          <h2 className="text-lg font-medium text-gray-900">Shopping Cart</h2>
+          <button className="p-2 text-gray-400 hover:text-gray-500" onClick={closeCart}>
             <X className="w-5 h-5" />
-            <span className="sr-only">Close cart</span>
           </button>
         </div>
 
-        {/* Cart items */}
+        {/* Cart Items */}
         <div className="flex-1 overflow-y-auto p-4">
-          {cartItems.length === 0 ? (
+          {!cartItems ? (
             <div className="text-center py-10">
               <ShoppingBag className="mx-auto w-12 h-12 text-gray-400" />
               <h3 className="mt-2 text-sm font-medium text-gray-900">Your cart is empty</h3>
@@ -61,49 +37,50 @@ const Cart = () => {
             <ul className="divide-y divide-gray-200">
               {cartItems.map((item) => (
                 <li key={item.id} className="py-6 flex">
-                  <div className="flex-shrink-0 w-24 h-24 border border-gray-200 rounded-md overflow-hidden">
+                  <div className="flex-shrink-0 w-24 h-24 border rounded-md overflow-hidden">
                     <img
-                      src={item.image}
+                      src={item.image || "https://via.placeholder.com/100"}
                       alt={item.name}
-                      className="w-full h-full object-center object-cover"
+                      className="w-full h-full object-cover"
                     />
                   </div>
 
                   <div className="ml-4 flex-1 flex flex-col">
-                    <div>
-                      <div className="flex justify-between text-base font-medium text-gray-900">
-                        <h3>{item.name}</h3>
-                        <p className="ml-4">${(item.price * item.quantity).toFixed(2)}</p>
-                      </div>
-                      <p className="mt-1 text-sm text-gray-500">
-                        <span className="block">Size: {item.size}</span>
-                        <span className="block">Color: {item.color}</span>
-                      </p>
+                    <div className="flex justify-between text-base font-medium text-gray-900">
+                      <h3>{item.name}</h3>
+                      <p className="ml-4">${(item.price * (item.quantity || 1)).toFixed(2)}</p>
                     </div>
-                    <div className="flex-1 flex items-end justify-between text-sm">
+                    <p className="mt-1 text-sm text-gray-500">
+                      <span>Artist: {item.artist || "Unknown"}</span>
+                    </p>
+                    <div className="flex items-center justify-between mt-2 text-sm">
                       <div className="flex items-center">
-                        <button 
+                        <button
                           className="px-2 py-1 border rounded-l"
-                          onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                          onClick={() =>
+                            dispatch(updateQuantity({ id: item.id, quantity: item.quantity - 1 }))
+                          }
+                          disabled={item.quantity <= 1}
                         >
                           -
                         </button>
                         <span className="px-4">{item.quantity}</span>
-                        <button 
+                        <button
                           className="px-2 py-1 border rounded-r"
-                          onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                          onClick={() =>
+                            dispatch(updateQuantity({ id: item.id, quantity: item.quantity + 1 }))
+                          }
                         >
                           +
                         </button>
                       </div>
 
-                      <button 
-                        type="button" 
-                        className="font-medium text-indigo-600 hover:text-indigo-500"
-                        onClick={() => removeItem(item.id)}
+                      <button
+                        type="button"
+                        className="text-red-500 hover:text-red-600"
+                        onClick={() => dispatch(removeFromCart(item.id))}
                       >
-                        <XIcon className="w-4 h-4" />
-                        <span className="sr-only">Remove</span>
+                        <X className="w-4 h-4" />
                       </button>
                     </div>
                   </div>
@@ -113,27 +90,39 @@ const Cart = () => {
           )}
         </div>
 
-        {/* Cart footer */}
-        <div className="border-t border-gray-200 p-4 space-y-4">
+        {/* Cart Footer */}
+        <div className="border-t p-4 space-y-2">
           <div className="flex justify-between text-base font-medium text-gray-900">
             <p>Subtotal</p>
-            <p>${subtotal.toFixed(2)}</p>
+            <p>${Number(itemsPrice).toFixed(2)}</p>
           </div>
-          <p className="text-sm text-gray-500">
-            Shipping and taxes calculated at checkout.
-          </p>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="flex justify-between text-sm text-gray-700">
+            <p>Shipping</p>
+            <p>${Number(shippingPrice).toFixed(2)}</p>
+          </div>
+          <div className="flex justify-between text-sm text-gray-700">
+            <p>Tax</p>
+            <p>${Number(taxPrice).toFixed(2)}</p>
+          </div>
+          <div className="flex justify-between text-lg font-semibold text-gray-900">
+            <p>Total</p>
+            <p>${Number(totalPrice).toFixed(2)}</p>
+          </div>
+          <p className="text-sm text-gray-500">Payment Method: {paymentMethod}</p>
+
+          <div className="grid grid-cols-2 gap-3 mt-4">
             <button
               type="button"
-              className="w-full bg-indigo-600 border border-transparent rounded-md py-3 px-4 text-base font-medium text-white hover:bg-indigo-700"
+              className="w-full bg-indigo-600 text-white py-3 rounded-md hover:bg-indigo-700"
             >
-              Checkout (${subtotal.toFixed(2)})
+              Checkout (${Number(totalPrice).toFixed(2)})
             </button>
             <button
               type="button"
-              className="w-full bg-white border border-gray-300 rounded-md py-3 px-4 text-base font-medium text-gray-700 hover:bg-gray-50"
+              className="w-full bg-gray-100 py-3 rounded-md hover:bg-gray-200"
+              onClick={closeCart}
             >
-              Continue shopping
+              Continue Shopping
             </button>
           </div>
         </div>

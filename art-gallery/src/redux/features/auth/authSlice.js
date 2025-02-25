@@ -1,24 +1,9 @@
 import { createSlice } from "@reduxjs/toolkit";
 
-const getStoredUserInfo = () => {
-  const userInfo = localStorage.getItem("userInfo");
-  const expirationTime = localStorage.getItem("expirationTime");
-
-  if (userInfo && expirationTime) {
-    const currentTime = new Date().getTime();
-    if (currentTime < parseInt(expirationTime, 10)) {
-      return JSON.parse(userInfo);
-    } else {
-      // Clear expired data
-      localStorage.removeItem("userInfo");
-      localStorage.removeItem("expirationTime");
-    }
-  }
-  return null;
-};
-
 const initialState = {
-  userInfo: getStoredUserInfo(),
+  userInfo: localStorage.getItem("userInfo")
+    ? JSON.parse(localStorage.getItem("userInfo"))
+    : null,
 };
 
 const authSlice = createSlice({
@@ -26,16 +11,15 @@ const authSlice = createSlice({
   initialState,
   reducers: {
     setCredentials: (state, action) => {
-      const expirationTime = new Date().getTime() + 15 * 24 * 60 * 60 * 1000; // 15 days
-
       state.userInfo = action.payload;
       localStorage.setItem("userInfo", JSON.stringify(action.payload));
-      localStorage.setItem("expirationTime", expirationTime.toString());
+
+      const expirationTime = new Date().getTime() + 30 * 24 * 60 * 60 * 1000; // 30 days
+      localStorage.setItem("expirationTime", expirationTime);
     },
     logout: (state) => {
       state.userInfo = null;
-      localStorage.removeItem("userInfo");
-      localStorage.removeItem("expirationTime");
+      localStorage.clear();
     },
   },
 });
@@ -43,4 +27,3 @@ const authSlice = createSlice({
 export const { setCredentials, logout } = authSlice.actions;
 
 export default authSlice.reducer;
-  
