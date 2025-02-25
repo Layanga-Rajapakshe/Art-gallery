@@ -1,5 +1,5 @@
 import React from 'react'
-import ArtworkCard from './ArtworkCard'
+import ArtworkCard from './ArtWorkCard'
 
 const BrowseArtGallery = () => {
   return (
