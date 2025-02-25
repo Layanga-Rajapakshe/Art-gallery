@@ -28,26 +28,30 @@ function Navbar({ className }) {
       <Menu setActive={setActive}>
         {/* Home Link */}
         <MenuItem setActive={setActive} active={active} item="Home">
-          <HoveredLink href="/home">Browse Art</HoveredLink>
+        <div className="flex flex-col space-y-4 text-sm">
+          <HoveredLink to="/">Home</HoveredLink>
+          <HoveredLink to="/browse">Browse Art</HoveredLink>
+        </div>
         </MenuItem>
 
         {/* Categories */}
         <MenuItem setActive={setActive} active={active} item="Categories">
           <div className="flex flex-col space-y-4 text-sm">
-            <HoveredLink href="/paintings">Paintings</HoveredLink>
-            <HoveredLink href="/sculptures">Sculptures</HoveredLink>
-            <HoveredLink href="/digital-art">Digital Art</HoveredLink>
-            <HoveredLink href="/photography">Photography</HoveredLink>
+            <HoveredLink to="/paintings">Paintings</HoveredLink>
+            <HoveredLink to="/sculptures">Sculptures</HoveredLink>
+            <HoveredLink to="/digital-art">Digital Art</HoveredLink>
+            <HoveredLink to="/photography">Photography</HoveredLink>
           </div>
         </MenuItem>
 
         {/* Account */}
         <MenuItem setActive={setActive} active={active} item="Account">
           <div className="flex flex-col space-y-4 text-sm">
-            <HoveredLink href="/profile">Profile</HoveredLink>
-            <HoveredLink href="/orders">My Orders</HoveredLink>
-            <HoveredLink href="/favorites">Favorites</HoveredLink>
-            <HoveredLink href="/logout">Logout</HoveredLink>
+            <HoveredLink to="/profile">Profile</HoveredLink>
+            <HoveredLink to="/cart">My Cart</HoveredLink>
+            <HoveredLink to="/orders">My Orders</HoveredLink>
+            <HoveredLink to="/favorites">Favorites</HoveredLink>
+            <HoveredLink to="/logout">Logout</HoveredLink>
           </div>
         </MenuItem>
 

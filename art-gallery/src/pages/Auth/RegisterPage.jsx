@@ -3,6 +3,9 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter }
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { AlertCircle } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Link } from 'react-router-dom';
 import axios from 'axios';
 
 const RegisterPage = () => {
@@ -42,19 +45,19 @@ const RegisterPage = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <Card className="w-full max-w-md">
+    <div className="min-h-screen flex items-center justify-center bg-gray-900 text-white/90 px-4" 
+         style={{ backgroundImage: 'url(./assets/Registerbackground.png)', backgroundSize: 'cover', backgroundPosition: 'center' }}>
+      <Card className="w-full max-w-md bg-black border border-white/10">
         <CardHeader>
-          <CardTitle className="text-2xl font-bold text-center">Create an Account</CardTitle>
-          <CardDescription className="text-center">
+          <CardTitle className="text-2xl font-bold text-center font-comfortaa text-white">Create an Account</CardTitle>
+          <CardDescription className="text-center text-white/70">
             Enter your details to register
           </CardDescription>
         </CardHeader>
         <form onSubmit={handleSubmit}>
           <CardContent className="space-y-4">
-
             <div className="space-y-2">
-              <Label htmlFor="name">Full Name</Label>
+              <Label htmlFor="name" className="text-white/90">Full Name</Label>
               <Input
                 id="name"
                 name="name"
@@ -63,11 +66,12 @@ const RegisterPage = () => {
                 value={formData.name}
                 onChange={handleChange}
                 required
+                className="px-4 py-2 bg-white/10 border border-white/20 rounded-md focus:outline-none focus:ring-2 focus:ring-white/30 text-white"
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email" className="text-white/90">Email</Label>
               <Input
                 id="email"
                 name="email"
@@ -76,11 +80,12 @@ const RegisterPage = () => {
                 value={formData.email}
                 onChange={handleChange}
                 required
+                className="px-4 py-2 bg-white/10 border border-white/20 rounded-md focus:outline-none focus:ring-2 focus:ring-white/30 text-white"
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password" className="text-white/90">Password</Label>
               <Input
                 id="password"
                 name="password"
@@ -89,16 +94,20 @@ const RegisterPage = () => {
                 value={formData.password}
                 onChange={handleChange}
                 required
+                className="px-4 py-2 bg-white/10 border border-white/20 rounded-md focus:outline-none focus:ring-2 focus:ring-white/30 text-white"
               />
             </div>
+            
             {error && (
-              <div className="text-sm text-red-500">
-                {error}
-              </div>
+              <Alert variant="destructive" className="bg-white/10 border border-red-400 text-white">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
             )}
+            
             <Button 
               type="submit" 
-              className="w-full"
+              className="w-full px-4 py-2 bg-white text-black rounded-md hover:bg-white/90 transition-colors font-medium"
               disabled={loading}
             >
               {loading ? 'Signing up...' : 'Sign Up'}
@@ -107,11 +116,11 @@ const RegisterPage = () => {
         </form>
 
         <CardFooter className="flex flex-col space-y-4">
-          <div className="text-sm text-center text-gray-500">
+          <div className="text-sm text-center text-white/60">
             Already have an account?{' '}
-            <a href="/login" className="text-primary hover:underline">
+            <Link to="/login" className="text-white hover:text-white hover:underline transition-colors">
               Log in
-            </a>
+            </Link>
           </div>
         </CardFooter>
       </Card>
