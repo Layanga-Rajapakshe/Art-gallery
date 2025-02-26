@@ -36,7 +36,7 @@ pipeline {
             steps {
                 bat '''
                     cd art-gallery
-                    docker run -d -p 5173:5173 %REGISTRY%/%IMAGE_NAME%:latest
+                    docker run -d -p 5173:5173 %REGISTRY%/%IMAGE_NAME%
                 '''
             }
         }
