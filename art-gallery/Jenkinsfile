@@ -15,14 +15,14 @@ pipeline {
             steps {
                 bat '''
                     cd art-gallery
-                    docker build -t %IMAGE_NAME% .
+                    %REGISTRY%/%IMAGE_NAME%:latest .
                 '''
             }
         }
 
         stage('Login to Docker Hub & Push Image') {
             steps {
-                withDockerRegistry([credentialsId: 'layanga-docker-access', url: '']) {
+                withDockerRegistry([credentialsId: 'layanga-docker-access', url: 'https://index.docker.io/v1/']) {
                     bat '''
                         cd art-gallery
                         docker tag %IMAGE_NAME% %REGISTRY%/%IMAGE_NAME%:latest
