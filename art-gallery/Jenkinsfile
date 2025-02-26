@@ -1,28 +1,40 @@
 pipeline {
-    agent any
+    agent any // Runs on any available Jenkins agent
     environment {
         IMAGE_NAME = 'art-gallery-jenkins'
-        REGISTRY = 'docker.io/yourusername'
+        REGISTRY = 'docker.io/layanga'
+        CONTAINER_NAME = 'art-gallery-container'
     }
     stages {
-        stage('Build') {
+        stage('Build Docker Image') {
             steps {
-                sh 'docker build -t $IMAGE_NAME .'
+                bat 'docker build -t %IMAGE_NAME% .'
             }
         }
 
-        stage('Push to Registry') {
+        stage('Login to Docker Hub & Push Image') {
             steps {
-                withDockerRegistry([credentialsId: 'docker-hub-credentials', url: '']) {
-                    sh 'docker tag $IMAGE_NAME $REGISTRY/$IMAGE_NAME:latest'
-                    sh 'docker push $REGISTRY/$IMAGE_NAME:latest'
+                withDockerRegistry([credentialsId: 'layanga-docker-access   ', url: '']) {
+                    bat 'docker tag %IMAGE_NAME% %REGISTRY%/%IMAGE_NAME%:latest'
+                    bat 'docker push %REGISTRY%/%IMAGE_NAME%:latest'
                 }
             }
         }
 
         stage('Deploy') {
             steps {
-                sh 'docker run -d -p 80:80 $REGISTRY/$IMAGE_NAME:latest'
+                script {
+                    // Stop and remove existing container if running
+                    bat '''
+                    FOR /F "tokens=*" %%i IN ('docker ps -q -f "name=%CONTAINER_NAME%"') DO docker stop %%i
+                    FOR /F "tokens=*" %%i IN ('docker ps -a -q -f "name=%CONTAINER_NAME%"') DO docker rm %%i
+                    '''
+
+                    // Run the new container
+                    bat '''
+                    docker run -d --name %CONTAINER_NAME% -p 5173:5173 --restart unless-stopped %REGISTRY%/%IMAGE_NAME%:latest
+                    '''
+                }
             }
         }
     }
