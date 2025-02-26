@@ -2,7 +2,7 @@ pipeline {
     agent any
     environment {
         IMAGE_NAME = 'art-gallery-jenkins'
-        REGISTRY = 'layanga/art-gallery-docker'
+        REGISTRY = 'docker.io/layanga'
     }
     stages {
         stage('Checkout Code') {
@@ -22,7 +22,7 @@ pipeline {
 
         stage('Login to Docker Hub & Push Image') {
             steps {
-                withDockerRegistry([credentialsId: 'layanga-docker-access', url: 'https://hub.docker.com/repository/docker/layanga/art-gallery-docker/']) {
+                withDockerRegistry([credentialsId: 'layanga-docker-access', url: 'https://docker.io/library/art-gallery-jenkins']) {
                     bat '''
                         cd art-gallery
                         docker tag %IMAGE_NAME% %REGISTRY%/%IMAGE_NAME%:latest
