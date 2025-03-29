@@ -16,5 +16,11 @@ export default defineConfig({
     watch: {
       usePolling: true,
     },
+    proxy: {
+    'auth/' : {
+        target: 'http://localhost:8000',
+        changeOrigin: true
+      }
+    }
   }
 })

@@ -5,42 +5,47 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 const LoginPage = () => {
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setLoading(true);
 
-    if (!email || !password) {
+    if (!username || !password) {
       setError('Please fill in all fields');
       setLoading(false);
       return;
     }
 
     try {
-      const response = await fetch('http://localhost:8000/users/login/', {
+      const response = await fetch('http://localhost:8000/auth/login/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ username, password }),
         credentials: 'include', // Ensures cookies are stored for session-based authentication
       });
 
       const data = await response.json();
 
       if (response.ok) {
+        localStorage.setItem('refreshToken', data.refresh);
         console.log('Login successful:', data);
         // Store authentication state (e.g., in localStorage or Redux)
+        
+        // Navigate to the home page after successful login
+        navigate('/');
       } else {
-        setError(data.error || 'Invalid email or password');
+        setError(data.error || 'Invalid username or password');
       }
     } catch (err) {
       setError('An error occurred during login');
@@ -67,13 +72,13 @@ const LoginPage = () => {
               </Alert>
             )}
             <div className="space-y-2">
-              <Label htmlFor="email" className="text-white/90">Email</Label>
+              <Label htmlFor="username" className="text-white/90">Username</Label>
               <Input
-                id="email"
-                type="email"
-                placeholder="m@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                id="username"
+                type="text"
+                placeholder="your_username"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
                 required
                 className="px-4 py-2 bg-white/10 border border-white/20 rounded-md focus:outline-none focus:ring-2 focus:ring-white/30 text-white"
               />

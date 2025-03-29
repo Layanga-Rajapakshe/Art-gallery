@@ -1,7 +1,153 @@
-import React from 'react'
-import ArtworkCard from './ArtWorkCard'
+import React, { useState, useEffect } from 'react';
+import ArtworkCard from './ArtWorkCard';
 
 const BrowseArtGallery = () => {
+  const [artworks, setArtworks] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [page, setPage] = useState(1);
+  const [filters, setFilters] = useState({
+    medium: [],
+    priceMin: '',
+    priceMax: '',
+    artists: []
+  });
+  const [sortBy, setSortBy] = useState('');
+  
+  // Fetch artworks from the Art Institute of Chicago API (a free public API)
+  useEffect(() => {
+    const fetchArtworks = async () => {
+      try {
+        setLoading(true);
+        // Using Art Institute of Chicago API which is free and doesn't require authentication
+        const response = await fetch(
+          `https://api.artic.edu/api/v1/artworks?page=${page}&limit=9&fields=id,title,artist_display,date_display,image_id,medium_display,dimensions`
+        );
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch artworks');
+        }
+        
+        const data = await response.json();
+        
+        const formattedArtworks = data.data.map(artwork => ({
+          id: artwork.id,
+          title: artwork.title,
+          artist: artwork.artist_display,
+          year: artwork.date_display,
+          medium: artwork.medium_display,
+          dimensions: artwork.dimensions,
+          // Generate a random price for demo purposes
+          price: Math.floor(Math.random() * 12000) + 500,
+          // Construct image URL from the Art Institute of Chicago image API
+          imageUrl: artwork.image_id 
+            ? `https://www.artic.edu/iiif/2/${artwork.image_id}/full/843,/0/default.jpg` 
+            : '/api/placeholder/400/320'
+        }));
+        
+        if (page === 1) {
+          setArtworks(formattedArtworks);
+        } else {
+          setArtworks(prev => [...prev, ...formattedArtworks]);
+        }
+      } catch (err) {
+        setError(err.message);
+        console.error('Error fetching artwork data:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchArtworks();
+  }, [page]);
+  
+  // Extract unique artists for the filter dropdown
+  const uniqueArtists = [...new Set(artworks.map(artwork => artwork.artist))]
+    .filter(artist => artist) // Remove empty artists
+    .slice(0, 10); // Limit to 10 for simplicity
+  
+  // Extract unique mediums for the filter dropdown
+  const mediumCounts = artworks.reduce((acc, artwork) => {
+    if (artwork.medium) {
+      const medium = artwork.medium.split(',')[0].trim(); // Get the primary medium
+      acc[medium] = (acc[medium] || 0) + 1;
+    }
+    return acc;
+  }, {});
+  
+  // Handle filter changes
+  const handleFilterChange = (filterType, value) => {
+    setFilters(prev => {
+      if (filterType === 'medium' || filterType === 'artists') {
+        // Toggle selection for checkboxes
+        const updated = prev[filterType].includes(value)
+          ? prev[filterType].filter(item => item !== value)
+          : [...prev[filterType], value];
+        return { ...prev, [filterType]: updated };
+      }
+      // For price inputs
+      return { ...prev, [filterType]: value };
+    });
+  };
+  
+  // Reset filters
+  const resetFilters = (filterType) => {
+    setFilters(prev => ({ ...prev, [filterType]: filterType === 'medium' || filterType === 'artists' ? [] : '' }));
+  };
+  
+  // Handle sort change
+  const handleSortChange = (e) => {
+    setSortBy(e.target.value);
+  };
+  
+  // Apply filters and sorting to artworks
+  const filteredAndSortedArtworks = artworks
+    .filter(artwork => {
+      // Filter by medium
+      if (filters.medium.length > 0) {
+        const artworkMedium = artwork.medium?.split(',')[0].trim();
+        if (!artworkMedium || !filters.medium.includes(artworkMedium)) {
+          return false;
+        }
+      }
+      
+      // Filter by price
+      if (filters.priceMin && artwork.price < parseInt(filters.priceMin)) {
+        return false;
+      }
+      if (filters.priceMax && artwork.price > parseInt(filters.priceMax)) {
+        return false;
+      }
+      
+      // Filter by artist
+      if (filters.artists.length > 0 && !filters.artists.includes(artwork.artist)) {
+        return false;
+      }
+      
+      return true;
+    })
+    .sort((a, b) => {
+      switch (sortBy) {
+        case 'Artist, A-Z':
+          return (a.artist || '').localeCompare(b.artist || '');
+        case 'Artist, Z-A':
+          return (b.artist || '').localeCompare(a.artist || '');
+        case 'Price, High-Low':
+          return b.price - a.price;
+        case 'Price, Low-High':
+          return a.price - b.price;
+        case 'Newest':
+          return (b.year || '').localeCompare(a.year || '');
+        default:
+          return 0;
+      }
+    });
+  
+  // Load more artworks
+  const handleLoadMore = () => {
+    setPage(prev => prev + 1);
+  };
+  
   return (
     <div>
       <section>
@@ -66,61 +212,33 @@ const BrowseArtGallery = () => {
                   >
                     <div className="w-96 rounded-sm border border-gray-200 bg-white">
                       <header className="flex items-center justify-between p-4">
-                        <span className="text-sm text-gray-700"> 0 Selected </span>
+                        <span className="text-sm text-gray-700"> {filters.medium.length} Selected </span>
 
-                        <button type="button" className="text-sm text-gray-900 underline underline-offset-4">
+                        <button 
+                          type="button" 
+                          className="text-sm text-gray-900 underline underline-offset-4"
+                          onClick={() => resetFilters('medium')}
+                        >
                           Reset
                         </button>
                       </header>
 
                       <ul className="space-y-1 border-t border-gray-200 p-4">
-                        <li>
-                          <label htmlFor="FilterPainting" className="inline-flex items-center gap-2">
-                            <input
-                              type="checkbox"
-                              id="FilterPainting"
-                              className="size-5 rounded-sm border-gray-300"
-                            />
+                        {Object.entries(mediumCounts).slice(0, 4).map(([medium, count], index) => (
+                          <li key={index}>
+                            <label htmlFor={`FilterMedium${index}`} className="inline-flex items-center gap-2">
+                              <input
+                                type="checkbox"
+                                id={`FilterMedium${index}`}
+                                className="size-5 rounded-sm border-gray-300"
+                                checked={filters.medium.includes(medium)}
+                                onChange={() => handleFilterChange('medium', medium)}
+                              />
 
-                            <span className="text-sm font-medium text-gray-700"> Paintings (45+) </span>
-                          </label>
-                        </li>
-
-                        <li>
-                          <label htmlFor="FilterSculpture" className="inline-flex items-center gap-2">
-                            <input
-                              type="checkbox"
-                              id="FilterSculpture"
-                              className="size-5 rounded-sm border-gray-300"
-                            />
-
-                            <span className="text-sm font-medium text-gray-700"> Sculptures (23+) </span>
-                          </label>
-                        </li>
-
-                        <li>
-                          <label htmlFor="FilterPhotography" className="inline-flex items-center gap-2">
-                            <input
-                              type="checkbox"
-                              id="FilterPhotography"
-                              className="size-5 rounded-sm border-gray-300"
-                            />
-
-                            <span className="text-sm font-medium text-gray-700"> Photography (32+) </span>
-                          </label>
-                        </li>
-
-                        <li>
-                          <label htmlFor="FilterDigital" className="inline-flex items-center gap-2">
-                            <input
-                              type="checkbox"
-                              id="FilterDigital"
-                              className="size-5 rounded-sm border-gray-300"
-                            />
-
-                            <span className="text-sm font-medium text-gray-700"> Digital Art (18+) </span>
-                          </label>
-                        </li>
+                              <span className="text-sm font-medium text-gray-700"> {medium} ({count}) </span>
+                            </label>
+                          </li>
+                        ))}
                       </ul>
                     </div>
                   </div>
@@ -159,7 +277,14 @@ const BrowseArtGallery = () => {
                       <header className="flex items-center justify-between p-4">
                         <span className="text-sm text-gray-700"> The highest price is $12,000 </span>
 
-                        <button type="button" className="text-sm text-gray-900 underline underline-offset-4">
+                        <button 
+                          type="button" 
+                          className="text-sm text-gray-900 underline underline-offset-4"
+                          onClick={() => {
+                            resetFilters('priceMin');
+                            resetFilters('priceMax');
+                          }}
+                        >
                           Reset
                         </button>
                       </header>
@@ -174,6 +299,8 @@ const BrowseArtGallery = () => {
                               id="FilterPriceFrom"
                               placeholder="From"
                               className="w-full rounded-md border-gray-200 shadow-xs sm:text-sm"
+                              value={filters.priceMin}
+                              onChange={(e) => handleFilterChange('priceMin', e.target.value)}
                             />
                           </label>
 
@@ -185,6 +312,8 @@ const BrowseArtGallery = () => {
                               id="FilterPriceTo"
                               placeholder="To"
                               className="w-full rounded-md border-gray-200 shadow-xs sm:text-sm"
+                              value={filters.priceMax}
+                              onChange={(e) => handleFilterChange('priceMax', e.target.value)}
                             />
                           </label>
                         </div>
@@ -224,9 +353,13 @@ const BrowseArtGallery = () => {
                   >
                     <div className="w-96 rounded-sm border border-gray-200 bg-white">
                       <header className="flex items-center justify-between p-4">
-                        <span className="text-sm text-gray-700"> 0 Selected </span>
+                        <span className="text-sm text-gray-700"> {filters.artists.length} Selected </span>
 
-                        <button type="button" className="text-sm text-gray-900 underline underline-offset-4">
+                        <button 
+                          type="button" 
+                          className="text-sm text-gray-900 underline underline-offset-4"
+                          onClick={() => resetFilters('artists')}
+                        >
                           Reset
                         </button>
                       </header>
@@ -267,56 +400,20 @@ const BrowseArtGallery = () => {
 
                           <div className="max-h-48 overflow-y-auto">
                             <ul className="space-y-1">
-                              <li>
-                                <label htmlFor="FilterArtist1" className="inline-flex items-center gap-2">
-                                  <input
-                                    type="checkbox"
-                                    id="FilterArtist1"
-                                    className="size-5 rounded-sm border-gray-300"
-                                  />
-                                  <span className="text-sm font-medium text-gray-700">Elena Ramirez</span>
-                                </label>
-                              </li>
-                              <li>
-                                <label htmlFor="FilterArtist2" className="inline-flex items-center gap-2">
-                                  <input
-                                    type="checkbox"
-                                    id="FilterArtist2"
-                                    className="size-5 rounded-sm border-gray-300"
-                                  />
-                                  <span className="text-sm font-medium text-gray-700">James Chen</span>
-                                </label>
-                              </li>
-                              <li>
-                                <label htmlFor="FilterArtist3" className="inline-flex items-center gap-2">
-                                  <input
-                                    type="checkbox"
-                                    id="FilterArtist3"
-                                    className="size-5 rounded-sm border-gray-300"
-                                  />
-                                  <span className="text-sm font-medium text-gray-700">Sophia Nguyen</span>
-                                </label>
-                              </li>
-                              <li>
-                                <label htmlFor="FilterArtist4" className="inline-flex items-center gap-2">
-                                  <input
-                                    type="checkbox"
-                                    id="FilterArtist4"
-                                    className="size-5 rounded-sm border-gray-300"
-                                  />
-                                  <span className="text-sm font-medium text-gray-700">Marcus Williams</span>
-                                </label>
-                              </li>
-                              <li>
-                                <label htmlFor="FilterArtist5" className="inline-flex items-center gap-2">
-                                  <input
-                                    type="checkbox"
-                                    id="FilterArtist5"
-                                    className="size-5 rounded-sm border-gray-300"
-                                  />
-                                  <span className="text-sm font-medium text-gray-700">Aisha Patel</span>
-                                </label>
-                              </li>
+                              {uniqueArtists.map((artist, index) => (
+                                <li key={index}>
+                                  <label htmlFor={`FilterArtist${index}`} className="inline-flex items-center gap-2">
+                                    <input
+                                      type="checkbox"
+                                      id={`FilterArtist${index}`}
+                                      className="size-5 rounded-sm border-gray-300"
+                                      checked={filters.artists.includes(artist)}
+                                      onChange={() => handleFilterChange('artists', artist)}
+                                    />
+                                    <span className="text-sm font-medium text-gray-700">{artist}</span>
+                                  </label>
+                                </li>
+                              ))}
                             </ul>
                           </div>
                         </div>
@@ -330,50 +427,91 @@ const BrowseArtGallery = () => {
             <div className="hidden sm:block">
               <label htmlFor="SortBy" className="sr-only">Sort By</label>
 
-              <select id="SortBy" className="h-10 rounded-sm border-gray-300 text-sm">
-                <option>Sort By</option>
+              <select 
+                id="SortBy" 
+                className="h-10 rounded-sm border-gray-300 text-sm"
+                value={sortBy}
+                onChange={handleSortChange}
+              >
+                <option value="">Sort By</option>
                 <option value="Artist, A-Z">Artist, A-Z</option>
                 <option value="Artist, Z-A">Artist, Z-A</option>
                 <option value="Price, High-Low">Price, High-Low</option>
                 <option value="Price, Low-High">Price, Low-High</option>
                 <option value="Newest">Newest</option>
-                <option value="Most Popular">Most Popular</option>
               </select>
             </div>
           </div>
 
-          <ul className="mt-4 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {Array.from({ length: 9 }).map((_, index) => (
-              <li key={index}>
-                <ArtworkCard />
-              </li>
-            ))}
-          </ul>
+          {loading && page === 1 ? (
+            <div className="mt-8 flex justify-center">
+              <p>Loading artworks...</p>
+            </div>
+          ) : error ? (
+            <div className="mt-8 flex justify-center">
+              <p className="text-red-500">Error: {error}</p>
+            </div>
+          ) : (
+            <>
+              <ul className="mt-4 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                {filteredAndSortedArtworks.map((artwork) => (
+                  <li key={artwork.id}>
+                    <ArtworkCard 
+                      id={artwork.id}
+                      title={artwork.title}
+                      artist={artwork.artist}
+                      year={artwork.year}
+                      medium={artwork.medium}
+                      price={artwork.price}
+                      imageUrl={artwork.imageUrl}
+                      dimensions={artwork.dimensions}
+                    />
+                  </li>
+                ))}
+              </ul>
+
+              {filteredAndSortedArtworks.length === 0 && (
+                <div className="mt-8 flex justify-center">
+                  <p>No artworks match your current filters.</p>
+                </div>
+              )}
+            </>
+          )}
 
           <div className="mt-8 flex justify-center">
-            <button className="flex items-center gap-2 rounded-md bg-white px-5 py-3 text-gray-700 border border-gray-300 hover:bg-gray-50">
-              <span className="text-sm font-medium"> Load More Artworks </span>
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-                strokeWidth="1.5"
-                stroke="currentColor"
-                className="size-4"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M19.5 13.5L12 21m0 0l-7.5-7.5M12 21V3"
-                  transform="rotate(180 12 12)"
-                />
-              </svg>
+            <button 
+              className="flex items-center gap-2 rounded-md bg-white px-5 py-3 text-gray-700 border border-gray-300 hover:bg-gray-50"
+              onClick={handleLoadMore}
+              disabled={loading}
+            >
+              {loading && page > 1 ? (
+                <span className="text-sm font-medium">Loading...</span>
+              ) : (
+                <>
+                  <span className="text-sm font-medium"> Load More Artworks </span>
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    strokeWidth="1.5"
+                    stroke="currentColor"
+                    className="size-4"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M19.5 13.5L12 21m0 0l-7.5-7.5M12 21V3"
+                      transform="rotate(180 12 12)"
+                    />
+                  </svg>
+                </>
+              )}
             </button>
           </div>
         </div>
       </section>
     </div>
-  )
-}
+  );
+};
 
-export default BrowseArtGallery
+export default BrowseArtGallery;

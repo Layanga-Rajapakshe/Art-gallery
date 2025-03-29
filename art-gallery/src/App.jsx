@@ -3,7 +3,7 @@ import LoginPage from "./pages/Auth/LoginPage";
 import RegisterPage from "./pages/Auth/RegisterPage";
 import Home from "./pages/Home";
 import { NavbarDemo } from "./components/NavBar";
-import BuyProduct from "./pages/BuyProduct";
+import ProductDetails from "./pages/ProductDetails";
 import BrowseArtGallery from "./pages/Browse";
 import Cart from "./pages/Cart";
 import Favorites from "./pages/Favorites";
@@ -24,7 +24,7 @@ export default function App() {
             <Routes>
               <Route path="/" element={<Home />} />
               <Route path="/browse" element={<BrowseArtGallery />} />
-              <Route path="/productdetails" element={<BuyProduct />} />
+              <Route path="/productdetails/:id" element={<ProductDetails />} />
               <Route path="/cart" element={<Cart />} />
               <Route path="/favorites" element={<Favorites />} />
               <Route path="/profile" element={<ProfilePage />} />

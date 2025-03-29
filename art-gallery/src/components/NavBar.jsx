@@ -7,6 +7,7 @@ import {
   ProductItem,
 } from "../components/ui/navbar-menu";
 import { cn } from "@/lib/utils";
+import { useNavigate } from "react-router-dom";
 
 export function NavbarDemo() {
   return (
@@ -18,20 +19,69 @@ export function NavbarDemo() {
 
 function Navbar({ className }) {
   const [active, setActive] = useState(null);
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    try {
+      // Get refresh token from localStorage or wherever it's stored
+      const refreshToken = localStorage.getItem('refreshToken');
+      
+      if (!refreshToken) {
+        console.error('No refresh token found');
+        // Still clear local data and redirect even if no token found
+        clearAuthData();
+        navigate('/login');
+        return;
+      }
+
+      const response = await fetch('http://localhost:8000/auth/logout/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ refresh: refreshToken }),
+      });
+
+      if (response.ok) {
+        console.log('Logout successful');
+      } else {
+        console.error('Logout failed on server');
+      }
+      
+      // Clear auth data and redirect regardless of server response
+      // This ensures user is logged out locally even if server fails
+      clearAuthData();
+      navigate('/login');
+    } catch (error) {
+      console.error('Error during logout:', error);
+      // Still clear auth data and redirect even if there's an error
+      clearAuthData();
+      navigate('/login');
+    }
+  };
+
+  // Helper function to clear all authentication data
+  const clearAuthData = () => {
+    localStorage.removeItem('accessToken');
+    localStorage.removeItem('refreshToken');
+    localStorage.removeItem('userData');
+    // Clear any other auth-related data you might be storing
+  };
+
   return (
     <div
       className={cn(
-        "fixed top-10 inset-x-0 max-w-5xl mx-auto z-50", 
+        "fixed top-10 inset-x-0 max-w-5xl mx-auto z-50",
         className
       )}
     >
       <Menu setActive={setActive}>
         {/* Home Link */}
         <MenuItem setActive={setActive} active={active} item="Home">
-        <div className="flex flex-col space-y-4 text-sm">
-          <HoveredLink to="/">Home</HoveredLink>
-          <HoveredLink to="/browse">Browse Art</HoveredLink>
-        </div>
+          <div className="flex flex-col space-y-4 text-sm">
+            <HoveredLink to="/">Home</HoveredLink>
+            <HoveredLink to="/browse">Browse Art</HoveredLink>
+          </div>
         </MenuItem>
 
         {/* Categories */}
@@ -51,7 +101,12 @@ function Navbar({ className }) {
             <HoveredLink to="/cart">My Cart</HoveredLink>
             <HoveredLink to="/orders">My Orders</HoveredLink>
             <HoveredLink to="/favorites">Favorites</HoveredLink>
-            <HoveredLink to="/logout">Logout</HoveredLink>
+            <div 
+              onClick={handleLogout} 
+              className="cursor-pointer text-sm py-1 px-2 hover:text-blue-500 transition-colors"
+            >
+              Logout
+            </div>
           </div>
         </MenuItem>
 
@@ -84,7 +139,6 @@ function Navbar({ className }) {
             />
           </div>
         </MenuItem>
-
       </Menu>
     </div>
   );
