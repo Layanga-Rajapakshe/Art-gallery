@@ -1,7 +1,5 @@
 import React from "react";
-import { useSelector, useDispatch } from "react-redux";
 import { X, ShoppingBag } from "lucide-react";
-import { removeFromCart, updateQuantity } from "../redux/features/cartSlice";
 
 const Cart = ({ closeCart }) => {
   const dispatch = useDispatch();

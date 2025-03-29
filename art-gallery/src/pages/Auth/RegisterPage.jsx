@@ -5,12 +5,13 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
 const RegisterPage = () => {
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
-    name: '',
+    username: '',
     email: '',
     password: ''
   });
@@ -23,11 +24,11 @@ const RegisterPage = () => {
     setError(null); // Reset error message on submit
 
     try {
-      const response = await axios.post('http://your-backend-url/register/', formData);
+      const response = await axios.post('http://localhost:8000/auth/register', formData);
       // Handle successful response
       console.log('Registration successful:', response.data);
-      // Redirect to login or dashboard page as needed
-      // Example: window.location.href = '/login';
+      // Redirect to login page
+      navigate('/login');
     } catch (err) {
       // Handle error response
       console.error('Error during registration:', err);
@@ -57,13 +58,13 @@ const RegisterPage = () => {
         <form onSubmit={handleSubmit}>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="name" className="text-white/90">Full Name</Label>
+              <Label htmlFor="username" className="text-white/90">Username</Label>
               <Input
-                id="name"
-                name="name"
+                id="username"
+                name="username"
                 type="text"
-                placeholder="Enter your full name"
-                value={formData.name}
+                placeholder="Enter your username"
+                value={formData.username}
                 onChange={handleChange}
                 required
                 className="px-4 py-2 bg-white/10 border border-white/20 rounded-md focus:outline-none focus:ring-2 focus:ring-white/30 text-white"

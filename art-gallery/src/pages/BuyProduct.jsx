@@ -1,6 +1,4 @@
 import React from 'react';
-import { useDispatch } from 'react-redux';
-import { addToCart } from '../redux/features/cartSlice';
 
 const BuyProduct = () => {
   const dispatch = useDispatch();
