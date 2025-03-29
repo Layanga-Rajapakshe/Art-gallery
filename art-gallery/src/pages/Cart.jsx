@@ -87,7 +87,7 @@ const Cart = () => {
               <ShoppingBag className="mx-auto w-12 h-12 text-gray-400" />
               <h3 className="mt-2 text-lg font-medium text-gray-900">Your cart is empty</h3>
               <p className="mt-1 text-sm text-gray-500">Start adding items to your cart.</p>
-              <Link to="/products" className="mt-4 inline-block bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700">
+              <Link to="/browse" className="mt-4 inline-block bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700">
                 Browse Products
               </Link>
             </div>

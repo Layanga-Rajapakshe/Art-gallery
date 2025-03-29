@@ -1,5 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { addToCart } from '../utils/cartUtils';
 
 const ArtworkCard = ({ 
   id, 
@@ -12,6 +13,26 @@ const ArtworkCard = ({
   dimensions 
 }) => {
   const navigate = useNavigate();
+
+  const handleAddToCart = () => {
+    
+    // Create a cart item from the artwork data
+    const cartItem = {
+      id: id,
+      name: title,
+      artist: artist,
+      price: price, // Helper function to determine price
+      image: imageUrl,
+      quantity: 1,
+    };
+    
+    addToCart(cartItem); // Add to cart using utility function
+    
+    // Notify user
+    alert('Added to cart!');
+    
+    // You could also update a global cart state here if using context/redux
+  };
   return (
     <div className="group block overflow-hidden rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-all">
       <div className="relative h-64 overflow-hidden">
@@ -50,8 +71,8 @@ const ArtworkCard = ({
             ${price?.toLocaleString() || "Price on request"}
           </p>
 
-          <button className="rounded border border-gray-400 p-2 text-gray-900 hover:bg-gray-100">
-            <span className="sr-only">Add to Favorites</span>
+          <button className="rounded border border-gray-400 p-2 text-gray-900 hover:bg-gray-100" onClick={handleAddToCart}>
+            <span className="sr-only">Add to Cart</span>
             <svg
               className="h-4 w-4"
               fill="none"
@@ -63,7 +84,7 @@ const ArtworkCard = ({
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 strokeWidth="2"
-                d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+                d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13l-1.4-7M7 13l-1.4-7M7 13l-1.4-7M16 16a2 2 0 1 1-4 0 2 2 0 0 1 4 0zM6 16a2 2 0 1 1-4 0 2 2 0 0 1 4 0z"
               />
             </svg>
           </button>

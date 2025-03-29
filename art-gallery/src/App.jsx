@@ -9,6 +9,8 @@ import Cart from "./pages/Cart";
 import Favorites from "./pages/Favorites";
 import ProfilePage from "./pages/ProfilePage";
 import Footer from "./components/Footer";
+import Checkout from "./pages/Checkout";
+import OrderConfirmation from "./pages/OrderConfirmation";
 import "./App.css"; // Make sure this CSS file exists
 
 export default function App() {
@@ -26,6 +28,8 @@ export default function App() {
               <Route path="/browse" element={<BrowseArtGallery />} />
               <Route path="/productdetails/:id" element={<ProductDetails />} />
               <Route path="/cart" element={<Cart />} />
+              <Route path="/checkout" element={<Checkout />} />
+              <Route path="/order-confirmation" element={<OrderConfirmation />} />
               <Route path="/favorites" element={<Favorites />} />
               <Route path="/profile" element={<ProfilePage />} />
               <Route path="/login" element={<LoginPage />} />
