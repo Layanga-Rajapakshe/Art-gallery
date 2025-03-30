@@ -38,10 +38,10 @@ pipeline {
                 bat 'docker push %IMAGE_NAME%'
             }
         }
-            stage('Cleanup') {
-                steps {
-                    bat 'docker rmi %IMAGE_NAME%'
-                }
+
+        stage('Cleanup') {
+            steps {
+                bat 'docker rmi %IMAGE_NAME%'
             }
         }
 
@@ -54,3 +54,4 @@ pipeline {
             }
         }
     }
+}
