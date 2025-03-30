@@ -2,6 +2,7 @@ pipeline {
     agent any
     environment {
         IMAGE_NAME = 'layanga/art-gallery-jenkins'
+        IMAGE_TAG = 'latest'
     }
     stages {
         stage('Checkout Code') {
@@ -14,7 +15,7 @@ pipeline {
             steps {
                 bat '''
                     cd art-gallery
-                    docker build -t %IMAGE_NAME% .
+                    docker build -t %IMAGE_NAME%:%IMAGE_TAG% .
                 '''
             }
         }
@@ -33,7 +34,7 @@ pipeline {
         stage('Push Image to Docker Hub') {
             steps {
                 bat '''
-                    docker push %IMAGE_NAME%:latest
+                    docker push %IMAGE_NAME%:%IMAGE_TAG%
                 '''
             }
         }
@@ -41,7 +42,7 @@ pipeline {
         stage('Cleanup') {
             steps {
                 bat '''
-                    docker rmi %IMAGE_NAME%:latest
+                    docker rmi %IMAGE_NAME%:%IMAGE_TAG% 
                 '''
             }
         }
@@ -50,7 +51,7 @@ pipeline {
             steps {
                 bat '''
                     cd art-gallery
-                    docker run -d -p 5173:5173 %IMAGE_NAME%:latest
+                    docker run -d -p 5173:5173 %IMAGE_NAME%:%IMAGE_TAG%
                 '''
             }
         }
