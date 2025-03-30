@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   HoveredLink,
   Menu,
@@ -19,43 +19,68 @@ export function NavbarDemo() {
 
 function Navbar({ className }) {
   const [active, setActive] = useState(null);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const navigate = useNavigate();
+
+  // Check login status when component mounts
+  useEffect(() => {
+    const checkLoginStatus = () => {
+      const accessToken = localStorage.getItem('accessToken');
+      setIsLoggedIn(!!accessToken);
+    };
+    
+    checkLoginStatus();
+    
+    // Set up event listener for storage changes
+    window.addEventListener('storage', checkLoginStatus);
+    
+    return () => {
+      window.removeEventListener('storage', checkLoginStatus);
+    };
+  }, []);
 
   const handleLogout = async () => {
     try {
-      // Get refresh token from localStorage or wherever it's stored
-      const refreshToken = localStorage.getItem('refreshToken');
+      // Get access token for authorization header
+      const accessToken = localStorage.getItem('accessToken');
       
-      if (!refreshToken) {
-        console.error('No refresh token found');
-        // Still clear local data and redirect even if no token found
-        clearAuthData();
-        navigate('/login');
-        return;
-      }
+      // Get CSRF token from cookie if it exists
+      const csrfToken = document.cookie
+      .split('; ')
+      .find(row => row.startsWith('csrftoken='))
+      ?.split('=')[1];
 
+      // Make logout request to server
       const response = await fetch('http://localhost:8000/auth/logout/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          // Include authorization header if token exists
+          ...(accessToken && { 'Authorization': `Bearer ${accessToken}` }),
+          // Include CSRF token if available
+          ...(csrfToken && { 'X-CSRFToken': csrfToken }),
         },
-        body: JSON.stringify({ refresh: refreshToken }),
+        credentials: 'include', // Include cookies
       });
 
       if (response.ok) {
         console.log('Logout successful');
       } else {
-        console.error('Logout failed on server');
+        console.error(`Logout failed: ${response.status} ${response.statusText}`);
+        // Try to get more error details if available
+        try {
+          const errorData = await response.json();
+          console.error('Error details:', errorData);
+        } catch (e) {
+          // If response can't be parsed as JSON, ignore
+        }
       }
-      
-      // Clear auth data and redirect regardless of server response
-      // This ensures user is logged out locally even if server fails
-      clearAuthData();
-      navigate('/login');
     } catch (error) {
       console.error('Error during logout:', error);
-      // Still clear auth data and redirect even if there's an error
+    } finally {
+      // Always clear auth data and redirect regardless of server response
       clearAuthData();
+      setIsLoggedIn(false);
       navigate('/login');
     }
   };
@@ -65,7 +90,10 @@ function Navbar({ className }) {
     localStorage.removeItem('accessToken');
     localStorage.removeItem('refreshToken');
     localStorage.removeItem('userData');
-    // Clear any other auth-related data you might be storing
+    
+    // Clear cookies - this works for same-domain cookies but may not work for HttpOnly cookies
+    document.cookie = "access_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+    document.cookie = "refresh_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
   };
 
   return (
@@ -94,19 +122,28 @@ function Navbar({ className }) {
           </div>
         </MenuItem>
 
-        {/* Account */}
+        {/* Account - Show different options based on login status */}
         <MenuItem setActive={setActive} active={active} item="Account">
           <div className="flex flex-col space-y-4 text-sm">
-            <HoveredLink to="/profile">Profile</HoveredLink>
-            <HoveredLink to="/cart">My Cart</HoveredLink>
-            <HoveredLink to="/orders">My Orders</HoveredLink>
-            <HoveredLink to="/favorites">Favorites</HoveredLink>
-            <div 
-              onClick={handleLogout} 
-              className="cursor-pointer text-sm py-1 px-2 hover:text-blue-500 transition-colors"
-            >
-              Logout
-            </div>
+            {isLoggedIn ? (
+              <>
+                <HoveredLink to="/profile">Profile</HoveredLink>
+                <HoveredLink to="/cart">My Cart</HoveredLink>
+                <HoveredLink to="/orders">My Orders</HoveredLink>
+                <HoveredLink to="/favorites">Favorites</HoveredLink>
+                <div 
+                  onClick={handleLogout} 
+                  className="cursor-pointer text-sm py-1 px-2 hover:text-blue-500 transition-colors"
+                >
+                  Logout
+                </div>
+              </>
+            ) : (
+              <>
+                <HoveredLink to="/login">Login</HoveredLink>
+                <HoveredLink to="/signup">Sign Up</HoveredLink>
+              </>
+            )}
           </div>
         </MenuItem>
 
@@ -143,3 +180,5 @@ function Navbar({ className }) {
     </div>
   );
 }
+
+export default Navbar;

@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Link, useNavigate } from 'react-router-dom';
-import axios from 'axios';
 
 const RegisterPage = () => {
   const navigate = useNavigate();
@@ -17,22 +16,44 @@ const RegisterPage = () => {
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [success, setSuccess] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError(null); // Reset error message on submit
 
+    // Basic form validation
+    if (!formData.username || !formData.email || !formData.password) {
+      setError('All fields are required');
+      setLoading(false);
+      return;
+    }
+
     try {
-      const response = await axios.post('http://localhost:8000/auth/register/', formData);
-      // Handle successful response
-      console.log('Registration successful:', response.data);
-      // Redirect to login page
-      navigate('/login');
+      const response = await fetch('http://localhost:8000/auth/register/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        // Set success state
+        setSuccess(true);
+        // Redirect to login page after a short delay
+        setTimeout(() => {
+          navigate('/login');
+        }, 2000);
+      } else {
+        setError(data.error || 'Registration failed. Please try again.');
+      }
     } catch (err) {
-      // Handle error response
       console.error('Error during registration:', err);
-      setError(err.response?.data?.error || 'Something went wrong');
+      setError('Something went wrong with the registration process. Please try again later.');
     } finally {
       setLoading(false);
     }
@@ -57,6 +78,19 @@ const RegisterPage = () => {
         </CardHeader>
         <form onSubmit={handleSubmit}>
           <CardContent className="space-y-4">
+            {success && (
+              <Alert className="bg-green-900/30 border border-green-500 text-white">
+                <AlertDescription>Registration successful! Redirecting to login...</AlertDescription>
+              </Alert>
+            )}
+          
+            {error && (
+              <Alert variant="destructive" className="bg-white/10 border border-red-400 text-white">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
+            
             <div className="space-y-2">
               <Label htmlFor="username" className="text-white/90">Username</Label>
               <Input
@@ -99,19 +133,12 @@ const RegisterPage = () => {
               />
             </div>
             
-            {error && (
-              <Alert variant="destructive" className="bg-white/10 border border-red-400 text-white">
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
-            )}
-            
             <Button 
               type="submit" 
               className="w-full px-4 py-2 bg-white text-black rounded-md hover:bg-white/90 transition-colors font-medium"
-              disabled={loading}
+              disabled={loading || success}
             >
-              {loading ? 'Signing up...' : 'Sign Up'}
+              {loading ? 'Signing up...' : success ? 'Registered!' : 'Sign Up'}
             </Button>
           </CardContent>
         </form>

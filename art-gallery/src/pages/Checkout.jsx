@@ -1,6 +1,145 @@
 import React, { useState, useEffect } from "react";
-import { PayPalButtons, PayPalScriptProvider } from "@paypal/react-paypal-js";
 import { useNavigate } from "react-router-dom";
+import { loadStripe } from "@stripe/stripe-js";
+import {
+  Elements,
+  CardElement,
+  useStripe,
+  useElements
+} from "@stripe/react-stripe-js";
+
+// Replace with your Stripe publishable key
+const stripePromise = loadStripe("pk_test_51R8EtS2LxKFFC71VuHJR3yG7IeRkjXMrHNZGMnj7fV2qORnzBEbPAjCmgLwTiPAvUpmS91YllFcZckTab1zhHvea005ZdF4LXg");
+
+// Payment Form Component using Stripe
+const PaymentForm = ({ customer, cartData, onPaymentSuccess, onPaymentError }) => {
+  const stripe = useStripe();
+  const elements = useElements();
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [cardError, setCardError] = useState("");
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+
+    if (!stripe || !elements) {
+      // Stripe.js hasn't loaded yet
+      return;
+    }
+
+    setIsProcessing(true);
+    setCardError("");
+
+    // In a real implementation, you would create a payment intent on your server
+    // and pass the client secret to the frontend. For demo purposes, we'll simulate success.
+    try {
+      // Normally you would make an API call to your server like this:
+      // const response = await fetch('/api/create-payment-intent', {
+      //   method: 'POST',
+      //   headers: { 'Content-Type': 'application/json' },
+      //   body: JSON.stringify({ amount: cartData.totalPrice * 100, currency: 'usd' })
+      // });
+      // const { clientSecret } = await response.json();
+      
+      // Instead, we'll simulate payment success for demo purposes
+      const { error, paymentMethod } = await stripe.createPaymentMethod({
+        type: 'card',
+        card: elements.getElement(CardElement),
+        billing_details: {
+          name: customer.name,
+          email: customer.email,
+          address: {
+            line1: customer.address,
+            city: customer.city,
+            postal_code: customer.postalCode,
+            country: customer.country
+          }
+        }
+      });
+
+      if (error) {
+        setCardError(error.message);
+        setIsProcessing(false);
+        onPaymentError(error.message);
+        return;
+      }
+
+      // For a real implementation, you would confirm the payment
+      // const { error: confirmError } = await stripe.confirmCardPayment(clientSecret, {
+      //   payment_method: paymentMethod.id
+      // });
+      
+      // if (confirmError) {
+      //   setCardError(confirmError.message);
+      //   setIsProcessing(false);
+      //   onPaymentError(confirmError.message);
+      //   return;
+      // }
+
+      // Payment successful
+      setIsProcessing(false);
+      onPaymentSuccess({
+        id: paymentMethod.id,
+        last4: paymentMethod.card.last4,
+        brand: paymentMethod.card.brand
+      });
+    } catch (err) {
+      console.error("Payment error:", err);
+      setIsProcessing(false);
+      onPaymentError("An unexpected error occurred. Please try again.");
+    }
+  };
+
+  const cardStyle = {
+    style: {
+      base: {
+        color: "#32325d",
+        fontFamily: '"Helvetica Neue", Helvetica, sans-serif',
+        fontSmoothing: "antialiased",
+        fontSize: "16px",
+        "::placeholder": {
+          color: "#aab7c4"
+        }
+      },
+      invalid: {
+        color: "#fa755a",
+        iconColor: "#fa755a"
+      }
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit}>
+      <div className="mb-4">
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          Card Details
+        </label>
+        <div className="p-3 border rounded-md">
+          <CardElement options={cardStyle} />
+        </div>
+        {cardError && (
+          <p className="mt-1 text-sm text-red-600">{cardError}</p>
+        )}
+      </div>
+      <button
+        type="submit"
+        disabled={!stripe || isProcessing}
+        className="w-full bg-indigo-600 text-white py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
+      >
+        {isProcessing ? (
+          <span className="flex items-center justify-center">
+            <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            Processing...
+          </span>
+        ) : (
+          `Pay $${cartData.totalPrice.toFixed(2)}`
+        )}
+      </button>
+    </form>
+  );
+};
 
 const Checkout = () => {
   const navigate = useNavigate();
@@ -10,7 +149,7 @@ const Checkout = () => {
     shippingPrice: 0,
     taxPrice: 0,
     totalPrice: 0,
-    paymentMethod: "PayPal"
+    paymentMethod: "Stripe"
   });
   const [customer, setCustomer] = useState({
     name: "",
@@ -23,9 +162,7 @@ const Checkout = () => {
   const [paymentSuccess, setPaymentSuccess] = useState(false);
   const [error, setError] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
-
-  // PayPal client ID - replace with your sandbox ID for testing
-  const paypalClientId = "YOUR_PAYPAL_SANDBOX_CLIENT_ID";
+  const [shippingCompleted, setShippingCompleted] = useState(false);
 
   useEffect(() => {
     // Load cart data from localStorage
@@ -49,7 +186,7 @@ const Checkout = () => {
         shippingPrice,
         taxPrice,
         totalPrice,
-        paymentMethod: "PayPal"
+        paymentMethod: "Stripe"
       });
 
       // Load customer data if available
@@ -96,97 +233,58 @@ const Checkout = () => {
     e.preventDefault();
     if (validateForm()) {
       saveCustomerInfo();
-      // The actual payment will be handled by PayPal buttons
-      // This just prepares the form for payment
-      document.getElementById("paypal-button-container").scrollIntoView({
+      setShippingCompleted(true);
+      // Scroll to payment section
+      document.getElementById("payment-section").scrollIntoView({
         behavior: "smooth"
       });
     }
   };
 
-  // PayPal handlers
-  const createOrder = (data, actions) => {
-    return actions.order.create({
-      purchase_units: [
-        {
-          description: "Purchase from Art Store",
-          amount: {
-            currency_code: "USD",
-            value: cartData.totalPrice.toFixed(2),
-            breakdown: {
-              item_total: {
-                currency_code: "USD",
-                value: cartData.itemsPrice.toFixed(2)
-              },
-              shipping: {
-                currency_code: "USD",
-                value: cartData.shippingPrice.toFixed(2)
-              },
-              tax_total: {
-                currency_code: "USD",
-                value: cartData.taxPrice.toFixed(2)
-              }
-            }
-          },
-          items: cartData.items.map(item => ({
-            name: item.name,
-            unit_amount: {
-              currency_code: "USD",
-              value: item.price.toFixed(2)
-            },
-            quantity: item.quantity,
-            description: `Artist: ${item.artist || "Unknown"}`
-          }))
-        }
-      ]
-    });
-  };
-
-  const onApprove = (data, actions) => {
+  const handlePaymentSuccess = (paymentDetails) => {
     setIsProcessing(true);
-    return actions.order.capture().then(function(details) {
-      setIsProcessing(false);
-      setPaymentSuccess(true);
-      
-      // Save order details
-      const orderInfo = {
-        id: details.id,
-        status: details.status,
-        customer: customer,
-        items: cartData.items,
-        payment: {
-          method: "PayPal",
-          email: details.payer.email_address,
-          id: details.id
-        },
-        subtotal: cartData.itemsPrice,
-        shipping: cartData.shippingPrice,
-        tax: cartData.taxPrice,
-        total: cartData.totalPrice,
-        date: new Date().toISOString()
-      };
-      
-      // Save order to localStorage for demo purposes
-      // In a real app, you would send this to your backend
-      const orders = localStorage.getItem('orders') ? 
-        JSON.parse(localStorage.getItem('orders')) : [];
-      orders.push(orderInfo);
-      localStorage.setItem('orders', JSON.stringify(orders));
-      
-      // Clear cart
-      localStorage.removeItem('cart');
-      
-      // Navigate to confirmation after a short delay
-      setTimeout(() => {
-        navigate('/order-confirmation', { state: { order: orderInfo } });
-      }, 2000);
-    });
+    setPaymentSuccess(true);
+    
+    // Save order details
+    const orderInfo = {
+      id: `order-${Date.now()}`, // Generate a unique ID
+      status: "Pending",
+      customer: customer,
+      items: cartData.items,
+      payment: {
+        method: "Stripe",
+        id: paymentDetails.id,
+        card: {
+          last4: paymentDetails.last4,
+          brand: paymentDetails.brand
+        }
+      },
+      subtotal: cartData.itemsPrice,
+      shipping: cartData.shippingPrice,
+      tax: cartData.taxPrice,
+      total: cartData.totalPrice,
+      date: new Date().toISOString()
+    };
+    
+    // Save order to localStorage for demo purposes
+    // In a real app, you would send this to your backend
+    const orders = localStorage.getItem('orders') ? 
+      JSON.parse(localStorage.getItem('orders')) : [];
+    orders.push(orderInfo);
+    localStorage.setItem('orders', JSON.stringify(orders));
+    
+    // Clear cart
+    localStorage.removeItem('cart');
+    
+    // Navigate to confirmation after a short delay
+    setTimeout(() => {
+      navigate('/order-confirmation', { state: { order: orderInfo } });
+    }, 2000);
   };
 
-  const onError = (err) => {
+  const handlePaymentError = (errorMessage) => {
     setIsProcessing(false);
-    setError("Payment failed. Please try again or use a different payment method.");
-    console.error("PayPal Error:", err);
+    setError(errorMessage || "Payment failed. Please try again or use a different card.");
   };
 
   // If payment was successful, show a success message
@@ -313,6 +411,24 @@ const Checkout = () => {
               </div>
             </form>
           </div>
+          
+          {/* Stripe Payment Section */}
+          {shippingCompleted && (
+            <div className="bg-white rounded-lg shadow p-6 mt-6" id="payment-section">
+              <h2 className="text-lg font-medium text-gray-900 mb-4">Payment Information</h2>
+              <Elements stripe={stripePromise}>
+                <PaymentForm 
+                  customer={customer}
+                  cartData={cartData}
+                  onPaymentSuccess={handlePaymentSuccess}
+                  onPaymentError={handlePaymentError}
+                />
+              </Elements>
+              <p className="text-xs text-gray-500 mt-4 text-center">
+                Safe and secure payments with Stripe. Your card information is encrypted and never stored on our servers.
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Order Summary */}
@@ -362,32 +478,6 @@ const Checkout = () => {
               <div className="flex justify-between text-lg font-semibold text-gray-900">
                 <p>Total</p>
                 <p>${cartData.totalPrice.toFixed(2)}</p>
-              </div>
-            </div>
-            
-            {/* PayPal payment section */}
-            <div className="mt-6" id="paypal-button-container">
-              <h3 className="text-md font-medium text-gray-900 mb-2">Payment Method</h3>
-              <div className="p-4 border rounded-md bg-gray-50">
-                <PayPalScriptProvider options={{ "client-id": paypalClientId, currency: "USD" }}>
-                  {isProcessing ? (
-                    <div className="text-center py-4">
-                      <div className="animate-spin h-6 w-6 border-2 border-indigo-500 rounded-full border-t-transparent mx-auto"></div>
-                      <p className="mt-2 text-sm text-gray-600">Processing payment...</p>
-                    </div>
-                  ) : (
-                    <PayPalButtons
-                      style={{ layout: "vertical" }}
-                      createOrder={createOrder}
-                      onApprove={onApprove}
-                      onError={onError}
-                      disabled={!customer.name || !customer.email || !customer.address || !customer.city || !customer.postalCode || !customer.country}
-                    />
-                  )}
-                </PayPalScriptProvider>
-                <p className="text-xs text-gray-500 mt-2 text-center">
-                  Safe and secure payments with PayPal. You don't need a PayPal account to pay.
-                </p>
               </div>
             </div>
           </div>

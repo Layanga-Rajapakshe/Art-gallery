@@ -32,23 +32,30 @@ const LoginPage = () => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ username, password }),
-        credentials: 'include', // Ensures cookies are stored for session-based authentication
+        credentials: 'include', // Important for storing cookies
       });
 
       const data = await response.json();
 
       if (response.ok) {
-        localStorage.setItem('refreshToken', data.refresh);
-        console.log('Login successful:', data);
-        // Store authentication state (e.g., in localStorage or Redux)
+        // Store tokens in localStorage for use in API calls
+        if (data.access) localStorage.setItem('accessToken', data.access);
+        if (data.refresh) localStorage.setItem('refreshToken', data.refresh);
         
+        // Store basic user data if available
+        if (data.user) {
+          localStorage.setItem('userData', JSON.stringify(data.user));
+        }
+        
+        console.log('Login successful');
         // Navigate to the home page after successful login
         navigate('/');
       } else {
-        setError(data.error || 'Invalid username or password');
+        setError(data.error || data.detail || 'Invalid username or password');
       }
     } catch (err) {
-      setError('An error occurred during login');
+      console.error('Login error:', err);
+      setError('An error occurred during login. Please try again.');
     } finally {
       setLoading(false);
     }
