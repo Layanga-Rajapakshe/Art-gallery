@@ -15,8 +15,33 @@ pipeline {
             steps {
                 bat '''
                     cd art-gallery
-                    docker build -t art-gallery-jenkins .
+                    docker build -t %IMAGE_NAME% .
                 '''
+            }
+        }
+
+         stage('Login to Docker Hub') {
+            steps {
+                withCredentials([usernamePassword(credentialsId: 'layanga-docker-access', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                    bat '''
+                        @echo off
+                        echo %DOCKER_PASS%> docker_password.txt
+                        type docker_password.txt | docker login -u %DOCKER_USER% --password-stdin
+                        del docker_password.txt
+                    '''
+                }
+            }
+        }
+
+        stage('Push Image to Docker Hub') {
+            steps {
+                bat 'docker push %IMAGE_NAME%'
+            }
+        }
+            stage('Cleanup') {
+                steps {
+                    bat 'docker rmi %IMAGE_NAME%'
+                }
             }
         }
 
@@ -29,4 +54,3 @@ pipeline {
             }
         }
     }
-}
