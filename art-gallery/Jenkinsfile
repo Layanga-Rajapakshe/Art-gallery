@@ -2,7 +2,7 @@ pipeline {
     agent any
     environment {
         IMAGE_NAME = 'art-gallery-jenkins'
-        REGISTRY = 'docker.io/layanga'
+        REGISTRY = 'layanga'  // This should be your Docker Hub username
     }
     stages {
         stage('Checkout Code') {
@@ -20,14 +20,19 @@ pipeline {
             }
         }
 
-         stage('Login to Docker Hub') {
+        stage('Tag Docker Image') {
+            steps {
+                bat '''
+                    docker tag %IMAGE_NAME% %REGISTRY%/%IMAGE_NAME%:latest
+                '''
+            }
+        }
+
+        stage('Login to Docker Hub') {
             steps {
                 withCredentials([usernamePassword(credentialsId: 'layanga-docker-access', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
                     bat '''
-                        @echo off
-                        echo %DOCKER_PASS%> docker_password.txt
-                        type docker_password.txt | docker login -u %DOCKER_USER% --password-stdin
-                        del docker_password.txt
+                        echo %DOCKER_PASS% | docker login -u %DOCKER_USER% --password-stdin
                     '''
                 }
             }
@@ -35,21 +40,25 @@ pipeline {
 
         stage('Push Image to Docker Hub') {
             steps {
-                bat 'docker push %IMAGE_NAME% .'
+                bat '''
+                    docker push %REGISTRY%/%IMAGE_NAME%:latest
+                '''
             }
         }
 
         stage('Cleanup') {
             steps {
-                bat 'docker rmi %IMAGE_NAME%'
+                bat '''
+                    docker rmi %REGISTRY%/%IMAGE_NAME%:latest
+                '''
             }
         }
 
         stage('Deploy') {
             steps {
-                 bat '''
+                bat '''
                     cd art-gallery
-                    docker run -d -p 5173:5173 art-gallery-jenkins
+                    docker run -d -p 5173:5173 %REGISTRY%/%IMAGE_NAME%:latest
                 '''
             }
         }
