@@ -1,7 +1,7 @@
 pipeline {
     agent any
     environment {
-        IMAGE_NAME = 'art-gallery-jenkins'
+        IMAGE_NAME = 'layanga/art-gallery-jenkins'
     }
     stages {
         stage('Checkout Code') {
