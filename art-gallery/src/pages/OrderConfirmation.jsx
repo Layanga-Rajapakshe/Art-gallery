@@ -79,7 +79,7 @@ const OrderConfirmation = () => {
       
       // Make the API request
       const response = await axios.post(
-        'http://localhost:8000/artwork/orders/',
+        'http://54.162.24.220/artwork/orders/',
         formattedOrder,
         {
           headers: {
