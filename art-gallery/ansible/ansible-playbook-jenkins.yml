@@ -1,0 +1,222 @@
+# ansible-playbook-jenkins.yml - Install Jenkins with Java 17
+- name: Install Jenkins on EC2 instance
+  hosts: jenkins_server
+  become: yes
+  tasks:
+    - name: Gather OS information
+      debug:
+        msg: 
+          - "Distribution: {{ ansible_distribution }}"
+          - "Version: {{ ansible_distribution_version }}"
+          - "OS Family: {{ ansible_os_family }}"
+    
+    - name: Update system packages
+      shell: |
+        if command -v apt-get &> /dev/null; then
+          apt-get update -y
+        elif command -v yum &> /dev/null; then
+          yum update -y
+        elif command -v dnf &> /dev/null; then
+          dnf update -y
+        else
+          echo "No supported package manager found"
+          exit 1
+        fi
+      args:
+        executable: /bin/bash
+      
+    - name: Remove previous Java and Jenkins installations
+      shell: |
+        if command -v yum &> /dev/null; then
+          yum remove -y java-11-amazon-corretto java-11-openjdk jenkins || true
+          yum clean all
+        elif command -v apt-get &> /dev/null; then
+          apt-get remove -y openjdk-11-jdk jenkins || true
+          apt-get autoremove -y
+        fi
+      args:
+        executable: /bin/bash
+
+    - name: Install Java 17 for Amazon Linux
+      shell: |
+        # For Amazon Linux 2, install Java 17 from Amazon Corretto
+        amazon-linux-extras install java-openjdk17 -y
+        yum install -y java-17-amazon-corretto-devel
+        alternatives --set java /usr/lib/jvm/java-17-amazon-corretto.x86_64/bin/java
+        # Set up the JAVA_HOME environment variable
+        echo 'export JAVA_HOME=/usr/lib/jvm/java-17-amazon-corretto.x86_64' > /etc/profile.d/java.sh
+        source /etc/profile.d/java.sh
+        yum install -y git python3 python3-pip
+      args:
+        executable: /bin/bash
+      when: ansible_distribution == "Amazon"
+
+    - name: Install necessary packages for other distributions
+      shell: |
+        if command -v apt-get &> /dev/null; then
+          apt-get install -y openjdk-17-jdk git python3 python3-pip
+          update-alternatives --set java /usr/lib/jvm/java-17-openjdk-amd64/bin/java
+        elif command -v dnf &> /dev/null; then
+          dnf install -y java-17-openjdk git python3 python3-pip
+          alternatives --set java /usr/lib/jvm/java-17-openjdk/bin/java
+        else
+          echo "No supported package manager found"
+          exit 1
+        fi
+      args:
+        executable: /bin/bash
+      when: ansible_distribution != "Amazon"
+
+    # Verify Java version before proceeding
+    - name: Check Java version
+      shell: java -version 2>&1
+      register: java_version
+      failed_when: false
+
+    - name: Display Java version
+      debug:
+        var: java_version.stdout_lines
+
+    - name: Fail if not using Java 17
+      fail:
+        msg: "Java 17 is not installed or not set as default. Check java installation."
+      when: "'17' not in java_version.stdout"
+
+    - name: Add Jenkins repository
+      shell: |
+        if command -v apt-get &> /dev/null; then
+          wget -q -O - https://pkg.jenkins.io/debian-stable/jenkins.io.key | apt-key add -
+          sh -c 'echo deb https://pkg.jenkins.io/debian-stable binary/ > /etc/apt/sources.list.d/jenkins.list'
+          apt-get update
+        else
+          wget -O /etc/yum.repos.d/jenkins.repo https://pkg.jenkins.io/redhat-stable/jenkins.repo
+          rpm --import https://pkg.jenkins.io/redhat-stable/jenkins.io-2023.key
+        fi
+      args:
+        executable: /bin/bash
+
+    - name: Install Jenkins
+      shell: |
+        if command -v apt-get &> /dev/null; then
+          apt-get install -y jenkins
+        else
+          yum install -y jenkins
+        fi
+      args:
+        executable: /bin/bash
+
+    - name: Set Java 17 for Jenkins in environment file
+      lineinfile:
+        path: /etc/sysconfig/jenkins
+        regexp: '^JENKINS_JAVA_CMD='
+        line: 'JENKINS_JAVA_CMD="/usr/lib/jvm/java-17-amazon-corretto.x86_64/bin/java"'
+        create: yes
+      when: ansible_distribution == "Amazon"
+
+    - name: Create Jenkins override directory
+      file:
+        path: /etc/systemd/system/jenkins.service.d
+        state: directory
+        mode: '0755'
+
+    - name: Create Jenkins service override
+      copy:
+        dest: /etc/systemd/system/jenkins.service.d/override.conf
+        content: |
+          [Service]
+          Environment="JAVA_HOME=/usr/lib/jvm/java-17-amazon-corretto.x86_64"
+          Environment="PATH=/usr/lib/jvm/java-17-amazon-corretto.x86_64/bin:$PATH"
+        mode: '0644'
+      when: ansible_distribution == "Amazon"
+
+    - name: Reload systemd
+      shell: systemctl daemon-reload
+      args:
+        executable: /bin/bash
+
+    - name: Start Jenkins service
+      systemd:
+        name: jenkins
+        state: started
+        enabled: yes
+      register: jenkins_start_result
+      failed_when: false
+
+    - name: Check Jenkins service status
+      shell: systemctl status jenkins
+      args:
+        executable: /bin/bash
+      register: jenkins_status
+      failed_when: false
+
+    - name: Display Jenkins service status
+      debug:
+        var: jenkins_status.stdout_lines
+
+    - name: Install Docker
+      shell: |
+        if command -v apt-get &> /dev/null; then
+          apt-get install -y docker.io
+          systemctl start docker
+          systemctl enable docker
+        else
+          if command -v amazon-linux-extras &> /dev/null; then
+            amazon-linux-extras install docker -y
+          else
+            yum install -y docker
+          fi
+          systemctl start docker
+          systemctl enable docker
+        fi
+        usermod -a -G docker jenkins || true
+        usermod -a -G docker $(whoami) || true
+      args:
+        executable: /bin/bash
+      failed_when: false
+
+    - name: Install AWS CLI
+      shell: |
+        curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+        unzip -o awscliv2.zip
+        ./aws/install --update
+      args:
+        executable: /bin/bash
+        creates: /usr/local/bin/aws
+      failed_when: false
+
+    - name: Install Ansible
+      shell: pip3 install ansible
+      args:
+        executable: /bin/bash
+      failed_when: false
+
+    - name: Check Jenkins logs
+      shell: journalctl -u jenkins --no-pager -n 50
+      args:
+        executable: /bin/bash
+      register: jenkins_logs
+      failed_when: false
+
+    - name: Display Jenkins logs
+      debug:
+        var: jenkins_logs.stdout_lines
+
+    - name: Restart Jenkins to apply Docker group changes
+      systemd:
+        name: jenkins
+        state: restarted
+      failed_when: false
+
+    - name: Wait for Jenkins to start up
+      pause:
+        seconds: 30
+
+    - name: Get initial admin password
+      shell: cat /var/lib/jenkins/secrets/initialAdminPassword || echo "Jenkins may not be running properly yet"
+      register: jenkins_admin_password
+      changed_when: false
+      failed_when: false
+
+    - name: Display Jenkins initial admin password
+      debug:
+        var: jenkins_admin_password.stdout

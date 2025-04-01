@@ -1,0 +1,32 @@
+---
+# deploy-app.yml - Deploy the art gallery application
+- name: Deploy Art Gallery Application
+  hosts: art_gallery_servers
+  become: yes
+  vars:
+    image_name: "layanga/art-gallery-jenkins"
+    image_tag: "{{ lookup('env', 'IMAGE_TAG') | default('latest', true) }}"
+  
+  tasks:
+    - name: Pull the Docker image
+      community.docker.docker_image:
+        name: "{{ image_name }}:{{ image_tag }}"
+        source: pull
+        force_source: yes
+      become: yes
+
+    - name: Stop any existing container
+      community.docker.docker_container:
+        name: art-gallery
+        state: absent
+      ignore_errors: yes
+
+    - name: Deploy the application container
+      community.docker.docker_container:
+        name: art-gallery
+        image: "{{ image_name }}:{{ image_tag }}"
+        state: started
+        restart_policy: always
+        published_ports:
+          - "80:5173"
+        detach: yes
