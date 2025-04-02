@@ -2,95 +2,57 @@ pipeline {
     agent any
     environment {
         IMAGE_NAME = 'layanga/art-gallery-jenkins'
-        IMAGE_TAG = "${env.BUILD_NUMBER}"
-        DOCKER_CREDENTIALS_ID = 'layanga-docker-access'
-        GITHUB_REPO = 'https://github.com/Layanga-Rajapakshe/Art-gallery.git'
-        GITHUB_BRANCH = 'main'
-        FRONTEND_EC2_IP = 'your_frontend_ec2_ip' // Will be replaced with actual IP
+        IMAGE_TAG = 'latest'
     }
-    
     stages {
         stage('Checkout Code') {
             steps {
-                checkout([$class: 'GitSCM', 
-                    branches: [[name: "*/${GITHUB_BRANCH}"]], 
-                    extensions: [], 
-                    userRemoteConfigs: [[url: "${GITHUB_REPO}"]]
-                ])
+                git branch: 'main', url: 'https://github.com/Layanga-Rajapakshe/Art-gallery.git'
             }
         }
 
         stage('Build Docker Image') {
             steps {
-                sh '''
+                bat '''
                     cd art-gallery
-                    docker build -t ${IMAGE_NAME}:${IMAGE_TAG} .
-                    docker tag ${IMAGE_NAME}:${IMAGE_TAG} ${IMAGE_NAME}:latest
+                    docker build -t %IMAGE_NAME%:%IMAGE_TAG% .
                 '''
             }
         }
 
-        stage('Test') {
+        stage('Login to Docker Hub') {
             steps {
-                sh '''
-                    echo "Running tests..."
-                    # Add your test commands here
-                '''
+                withCredentials([usernamePassword(credentialsId: 'layanga-docker-access', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                    bat '''
+                        echo %DOCKER_PASS% | docker login -u %DOCKER_USER% --password-stdin
+                    '''
+                }
             }
         }
 
         stage('Push Image to Docker Hub') {
             steps {
-                withCredentials([usernamePassword(credentialsId: "${DOCKER_CREDENTIALS_ID}", 
-                                                 passwordVariable: 'DOCKER_PASS', 
-                                                 usernameVariable: 'DOCKER_USER')]) {
-                    sh '''
-                        echo ${DOCKER_PASS} | docker login -u ${DOCKER_USER} --password-stdin
-                        docker push ${IMAGE_NAME}:${IMAGE_TAG}
-                        docker push ${IMAGE_NAME}:latest
-                    '''
-                }
+                bat '''
+                    docker push %IMAGE_NAME%:%IMAGE_TAG%
+                '''
             }
         }
 
-        stage('Deploy to Frontend EC2') {
+        stage('Cleanup') {
             steps {
-                withCredentials([sshUserPrivateKey(credentialsId: 'ec2-ssh-key', 
-                                                  keyFileVariable: 'SSH_KEY', 
-                                                  usernameVariable: 'SSH_USER')]) {
-                    sh '''
-                        # Create a temporary inventory file
-                        echo "[frontend]" > inventory_temp
-                        echo "frontend ansible_host=${FRONTEND_EC2_IP} ansible_user=ec2-user ansible_ssh_private_key_file=${SSH_KEY} ansible_ssh_common_args='-o StrictHostKeyChecking=no'" >> inventory_temp
-                        
-                        # Create deployment script
-                        cat << EOF > deploy.sh
-                        #!/bin/bash
-                        sudo docker pull ${IMAGE_NAME}:${IMAGE_TAG}
-                        sudo docker stop art-gallery || true
-                        sudo docker rm art-gallery || true
-                        sudo docker run -d --name art-gallery -p 80:5173 ${IMAGE_NAME}:${IMAGE_TAG}
-                        EOF
-                        
-                        # Execute the deployment script on the frontend EC2
-                        chmod +x deploy.sh
-                        scp -i ${SSH_KEY} -o StrictHostKeyChecking=no deploy.sh ec2-user@${FRONTEND_EC2_IP}:~/
-                        ssh -i ${SSH_KEY} -o StrictHostKeyChecking=no ec2-user@${FRONTEND_EC2_IP} "chmod +x ~/deploy.sh && ~/deploy.sh"
-                    '''
-                }
+                bat '''
+                    docker rmi %IMAGE_NAME%:%IMAGE_TAG% 
+                '''
             }
         }
-    }
-    
-    post {
-        always {
-            cleanWs()
-        }
-        success {
-            echo 'Successfully built and deployed the Art Gallery application!'
-        }
-        failure {
-            echo 'Build or deployment failed!'
+
+        stage('Deploy') {
+            steps {
+                bat '''
+                    cd art-gallery
+                    docker run -d -p 5173:5173 %IMAGE_NAME%:%IMAGE_TAG%
+                '''
+            }
         }
     }
 }
