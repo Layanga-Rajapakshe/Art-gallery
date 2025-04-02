@@ -35,7 +35,7 @@ const Orders = () => {
         ?.split('=')[1];
       
       const response = await axios.get(
-        'http://localhost:8000/artwork/orders/',
+        'http://54.162.24.220/artwork/orders/',
         {
           headers: {
             'Content-Type': 'application/json',

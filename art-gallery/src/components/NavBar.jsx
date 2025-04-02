@@ -51,7 +51,7 @@ function Navbar({ className }) {
       ?.split('=')[1];
 
       // Make logout request to server
-      const response = await fetch('http://localhost:8000/auth/logout/', {
+      const response = await fetch('http://54.162.24.220/auth/logout/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
