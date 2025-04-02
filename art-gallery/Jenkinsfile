@@ -46,13 +46,14 @@ pipeline {
             }
         }
 
-        // stage('Deploy') {
-        //     steps {
-        //         bat '''
-        //             cd art-gallery
-        //             docker run -d -p 5173:5173 %IMAGE_NAME%:%IMAGE_TAG%
-        //         '''
-        //     }
-        // }
+        stage('Deploy with Ansible') {
+            steps {
+                withCredentials([sshUserPrivateKey(credentialsId: 'ssh-key-id', keyFileVariable: 'SSH_KEY')]) {
+                    sh '''
+                        ansible-playbook -i inventory.ini deploy_art_gallery_container.yml --private-key=$SSH_KEY
+                    '''
+                }
+            }
+        }
     }
 }
