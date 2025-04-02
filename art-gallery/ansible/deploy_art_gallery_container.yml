@@ -1,0 +1,64 @@
+---
+# deploy_art_gallery_container.yml
+- name: Deploy Art Gallery Docker Container
+  hosts: art_gallery_servers
+  become: yes
+  gather_facts: yes
+
+  vars:
+    docker_image: layanga/art-gallery-jenkins:latest
+    container_port: 5173
+    host_port: 80
+
+  tasks:
+    - name: Print OS information
+      debug:
+        var: ansible_distribution
+
+    - name: Ensure Docker is installed (Amazon Linux)
+      command: amazon-linux-extras install docker -y
+      args:
+        creates: /usr/bin/docker
+      when: ansible_distribution == "Amazon"
+
+    - name: Install Docker using YUM if amazon-linux-extras fails
+      yum:
+        name: docker
+        state: present
+        use_backend: yum
+      when: ansible_distribution == "Amazon"
+      ignore_errors: yes
+
+    - name: Ensure Docker service is started and enabled
+      service:
+        name: docker
+        state: started
+        enabled: yes
+
+    - name: Add ec2-user to docker group
+      user:
+        name: ec2-user
+        groups: docker
+        append: yes
+
+    - name: Pull the latest Docker image
+      shell: docker pull {{ docker_image }}
+      register: pull_result
+      changed_when: "'Image is up to date' not in pull_result.stdout"
+
+    - name: Stop any existing art gallery container
+      shell: docker rm -f art-gallery || true
+      changed_when: false
+
+    - name: Run the art gallery container
+      shell: docker run -d --name art-gallery -p {{ host_port }}:{{ container_port }} --restart always {{ docker_image }}
+      register: container_create
+
+    - name: Verify container is running
+      shell: docker ps -f name=art-gallery
+      register: container_status
+      changed_when: false
+
+    - name: Display container status
+      debug:
+        msg: "{{ container_status.stdout_lines }}"
