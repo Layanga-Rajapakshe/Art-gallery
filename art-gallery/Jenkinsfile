@@ -46,13 +46,13 @@ pipeline {
             }
         }
 
-        stage('Deploy') {
-            steps {
-                bat '''
-                    cd art-gallery
-                    docker run -d -p 5173:5173 %IMAGE_NAME%:%IMAGE_TAG%
-                '''
-            }
-        }
+        // stage('Deploy') {
+        //     steps {
+        //         bat '''
+        //             cd art-gallery
+        //             docker run -d -p 5173:5173 %IMAGE_NAME%:%IMAGE_TAG%
+        //         '''
+        //     }
+        // }
     }
 }
